@@ -1,0 +1,83 @@
+Bootstrap: docker
+From: continuumio/miniconda3:latest
+
+%labels
+    Application dragonfly_gen
+    Source https://github.com/atzkenneth/dragonfly_gen
+    Version 1.0
+
+%help
+    Apptainer container for dragonfly_gen:
+    "Prospective de novo drug design with deep interactome learning"
+    (Atz et al., Nat. Commun. 15, 3408 (2024))
+    https://github.com/atzkenneth/dragonfly_gen
+
+    Usage:
+        apptainer run dragonfly_gen.sif <command>
+        apptainer exec dragonfly_gen.sif python /opt/dragonfly_gen/genfromligand/sampling.py -h
+
+    The conda environment "dragonfly_gen" is activated automatically
+    when you exec/run/shell into the container.
+
+%environment
+    export PYTHONPATH="${PYTHONPATH}:/opt/dragonfly_gen"
+    export CONDA_DIR=/opt/conda
+    export PATH="/opt/conda/envs/dragonfly_gen/bin:/opt/conda/bin:${PATH}"
+    export HDF5_USE_FILE_LOCKING=FALSE
+    # make sure the env is active in interactive shells too
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate dragonfly_gen
+
+%post
+    set -e
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    echo "===== Installing system packages ====="
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        git \
+        wget \
+        ca-certificates \
+        build-essential
+    rm -rf /var/lib/apt/lists/*
+
+    echo "===== Cloning dragonfly_gen ====="
+    git clone https://github.com/atzkenneth/dragonfly_gen.git /opt/dragonfly_gen
+
+    echo "===== Creating conda environment from environment.yml ====="
+    . /opt/conda/etc/profile.d/conda.sh
+    cd /opt/dragonfly_gen/envs
+    conda env create -f environment.yml
+
+    echo "===== Pinning MKL to fix 'undefined symbol: iJIT_NotifyEvent' ====="
+    # environment.yml lists "nodefaults" as a channel, so conda resolves MKL
+    # from conda-forge instead of the pytorch/defaults channel. conda-forge's
+    # newer MKL builds dropped the Intel ITT symbols that this pinned
+    # torch==1.13.1 build was linked against, breaking `import torch`.
+    # See: https://github.com/atzkenneth/dragonfly_gen/issues/3
+    conda install -y -n dragonfly_gen -c conda-forge "mkl=2021.4.0" "intel-openmp=2021.4.0"
+
+    echo "===== Installing poetry-managed dependencies ====="
+    conda activate dragonfly_gen
+    pip install --no-cache-dir poetry
+    poetry install --no-root
+
+    echo "===== Cleaning up ====="
+    conda clean -afy
+    pip cache purge || true
+
+    # bake PYTHONPATH into the environment activation script as well
+    echo 'export PYTHONPATH="${PYTHONPATH}:/opt/dragonfly_gen"' >> /opt/conda/etc/profile.d/conda.sh
+
+%runscript
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate dragonfly_gen
+    export PYTHONPATH="${PYTHONPATH}:/opt/dragonfly_gen"
+    exec "$@"
+
+%test
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate dragonfly_gen
+    export PYTHONPATH="${PYTHONPATH}:/opt/dragonfly_gen"
+    python -c "import torch, torch_geometric, rdkit; print('torch:', torch.__version__); print('torch_geometric:', torch_geometric.__version__); print('rdkit:', rdkit.__version__)"
