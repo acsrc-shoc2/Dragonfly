@@ -12,10 +12,6 @@ From: continuumio/miniconda3:latest
     (Atz et al., Nat. Commun. 15, 3408 (2024))
     https://github.com/atzkenneth/dragonfly_gen
 
-    Usage:
-        apptainer run dragonfly_gen.sif <command>
-        apptainer exec dragonfly_gen.sif python /opt/dragonfly_gen/genfromligand/sampling.py -h
-
     The conda environment "dragonfly_gen" is activated automatically
     when you exec/run/shell into the container.
 
@@ -62,6 +58,9 @@ From: continuumio/miniconda3:latest
     conda activate dragonfly_gen
     pip install --no-cache-dir poetry
     poetry install --no-root
+
+    echo "===== Installing ipywidgets (silences tqdm's IProgress warning) ====="
+    pip install --no-cache-dir ipywidgets
 
     echo "===== Cleaning up ====="
     conda clean -afy
