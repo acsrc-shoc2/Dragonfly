@@ -8,11 +8,9 @@
 #SBATCH --job-name      dragonfly
 #SBATCH --output        dragonfly.log
 
-source /etc/profile.d/modules.sh
-module purge
-module load Python/3.14.4-foss-2026
 module load JupyterLab/2026.7.0-foss-2026-4.6.0
 
+# below is where kernel pmdm is located
 export JUPYTER_PATH=/nesi/project/uoa04517/.jupyter/share/jupyter
 
-papermill dragonfly.ipynb output.ipynb --kernel dragonfly
+papermill dragonfly.ipynb output_dragonfly.ipynb --kernel dragonfly
