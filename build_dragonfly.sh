@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+#location to install container and folders to
+PROJDIR=/nesi/project/uoa04517/SHOC2/Dragonfly
+cd $PROJDIR
+
+#group/project I want to make data and the container accessible to
 GROUP=uoa04517
 
 #Set up cache folders
@@ -10,10 +15,12 @@ APPTAINER_TMPDIR=${APPTAINER_CACHEDIR}
 #Build container 
 apptainer build --force dragonfly.sif dragonfly.def
 chmod 640 dragonfly.sif
+# Should also be available publically via github actions:
+# apptainer pull dragonfly.sif oras://ghcr.io/acsrc-shoc2/dragonfly/dragonfly:latest
 
 #Create data folder that dragonfly can read/write to
-export APPTAINER_DIR="/opt/dragonfly_gen/dragonfly_gen"
-export LOCAL_DIR=$(basename $APPTAINER_DIR)
+APPTAINER_DIR="/opt/dragonfly_gen/dragonfly_gen"
+LOCAL_DIR=$(basename $APPTAINER_DIR)
 
 if [ ! -d $LOCAL_DIR ]; then
     echo "Work folder does not exist"
